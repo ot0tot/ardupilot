@@ -2404,6 +2404,7 @@ class AutoTest(ABC):
         while mav.recv_match(blocking=False) is not None:
             count += 1
         if quiet:
+            self.in_drain_mav = False
             return
         tdelta = time.time() - tstart
         if tdelta == 0:
@@ -5999,6 +6000,9 @@ Also, ignores heartbeats not from our target system'''
         elif 'unicode' in str(type(text)):
             text = text.encode('ascii')
         self.mav.mav.statustext_send(mavutil.mavlink.MAV_SEVERITY_WARNING, text)
+
+    def get_stacktrace(self):
+        return ''.join(traceback.format_stack())
 
     def get_exception_stacktrace(self, e):
         if sys.version_info[0] >= 3:
