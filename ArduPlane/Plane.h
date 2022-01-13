@@ -62,7 +62,6 @@
 #include <AP_RCMapper/AP_RCMapper.h>        // RC input mapping library
 
 #include <AP_Vehicle/AP_Vehicle.h>
-#include <AP_SpdHgtControl/AP_SpdHgtControl.h>
 #include <AP_TECS/AP_TECS.h>
 #include <AP_NavEKF2/AP_NavEKF2.h>
 #include <AP_NavEKF3/AP_NavEKF3.h>
@@ -105,7 +104,7 @@
 #include "defines.h"
 #include "mode.h"
 
-#ifdef ENABLE_SCRIPTING
+#if AP_SCRIPTING_ENABLED
 #include <AP_Scripting/AP_Scripting.h>
 #endif
 
@@ -237,15 +236,12 @@ private:
     // selected navigation controller
     AP_Navigation *nav_controller = &L1_controller;
 
-    // selected navigation controller
-    AP_SpdHgtControl *SpdHgt_Controller = &TECS_controller;
-
     // Camera
 #if CAMERA == ENABLED
     AP_Camera camera{MASK_LOG_CAMERA};
 #endif
 
-#if OPTFLOW == ENABLED
+#if AP_OPTICALFLOW_ENABLED
     // Optical flow sensor
     OpticalFlow optflow;
 #endif
@@ -320,9 +316,6 @@ private:
         // Used to track if the value on channel 3 (throtttle) has fallen below the failsafe threshold
         // RC receiver should be set up to output a low throttle value when signal is lost
         bool rc_failsafe;
-
-        // has the saved mode for failsafe been set?
-        bool saved_mode_set;
 
         // true if an adsb related failsafe has occurred
         bool adsb;
@@ -399,6 +392,9 @@ private:
     // Difference between current altitude and desired altitude.  Centimeters
     int32_t altitude_error_cm;
 
+    // speed scaler for control surfaces, updated at 10Hz
+    float surface_speed_scaler = 1.0;
+
     // Battery Sensors
     AP_BattMonitor battery{MASK_LOG_CURRENT,
                            FUNCTOR_BIND_MEMBER(&Plane::handle_battery_failsafe, void, const char*, const int8_t),
@@ -436,6 +432,7 @@ private:
         // when ground steering is active, and for steering in auto-takeoff
         bool locked_course;
         float locked_course_err;
+        uint32_t last_steer_ms;
     } steer_state;
 
     // flight mode specific
@@ -521,12 +518,13 @@ private:
         float terrain_correction;
     } auto_state;
 
-#if ENABLE_SCRIPTING
+#if AP_SCRIPTING_ENABLED
     // support for scripting nav commands, with verify
     struct {
         uint16_t id;
         float roll_rate_dps;
         float pitch_rate_dps;
+        float yaw_rate_dps;
         float throttle_pct;
         uint32_t start_ms;
         bool done;
@@ -647,7 +645,7 @@ private:
     AP_Terrain terrain{mission};
 #endif
 
-    AP_Landing landing{mission,ahrs,SpdHgt_Controller,nav_controller,aparm,
+    AP_Landing landing{mission,ahrs,&TECS_controller,nav_controller,aparm,
             FUNCTOR_BIND_MEMBER(&Plane::set_target_altitude_proportion, void, const Location&, float),
             FUNCTOR_BIND_MEMBER(&Plane::constrain_target_altitude_location, void, const Location&, const Location&),
             FUNCTOR_BIND_MEMBER(&Plane::adjusted_altitude_cm, int32_t),
@@ -848,7 +846,7 @@ private:
     int32_t calc_altitude_error_cm(void);
     void check_fbwb_minimum_altitude(void);
     void reset_offset_altitude(void);
-    void set_offset_altitude_location(const Location &loc);
+    void set_offset_altitude_location(const Location &start_loc, const Location &destination_loc);
     bool above_location_current(const Location &loc);
     void setup_terrain_target_alt(Location &loc) const;
     int32_t adjusted_altitude_cm(void);
@@ -863,7 +861,8 @@ private:
     void calc_throttle();
     void calc_nav_roll();
     void calc_nav_pitch();
-    float get_speed_scaler(void);
+    float calc_speed_scaler(void);
+    float get_speed_scaler(void) const { return surface_speed_scaler; }
     bool stick_mixing_enabled(void);
     void stabilize_roll(float speed_scaler);
     float stabilize_roll_get_roll_out(float speed_scaler);
@@ -944,7 +943,7 @@ private:
     bool verify_command_callback(const AP_Mission::Mission_Command& cmd);
     float get_wp_radius() const;
 
-#if ENABLE_SCRIPTING
+#if AP_SCRIPTING_ENABLED
     // nav scripting support
     void do_nav_script_time(const AP_Mission::Mission_Command& cmd);
     bool verify_nav_script_time(const AP_Mission::Mission_Command& cmd);
@@ -1049,7 +1048,6 @@ private:
     // sensors.cpp
     void read_rangefinder(void);
     void read_airspeed(void);
-    void rpm_update(void);
 
     // system.cpp
     void init_ardupilot() override;
@@ -1087,7 +1085,6 @@ private:
     void set_landing_gear(void);
     void dspoiler_update(void);
     void airbrake_update(void);
-    void servo_output_mixers(void);
     void landing_neutral_control_surface_servos(void);
     void servos_output(void);
     void servos_auto_trim(void);
@@ -1137,7 +1134,7 @@ private:
     float get_throttle_input(bool no_deadzone=false) const;
     float get_adjusted_throttle_input(bool no_deadzone=false) const;
 
-#ifdef ENABLE_SCRIPTING
+#if AP_SCRIPTING_ENABLED
     // support for NAV_SCRIPT_TIME mission command
     bool nav_scripting_active(void) const;
     bool nav_script_time(uint16_t &id, uint8_t &cmd, float &arg1, float &arg2) override;
@@ -1205,6 +1202,7 @@ private:
     };
 
     FlareMode flare_mode;
+    bool throttle_at_zero(void) const;
 
     // expo handling
     float roll_in_expo(bool use_dz) const;
@@ -1213,10 +1211,10 @@ private:
 
 public:
     void failsafe_check(void);
-#ifdef ENABLE_SCRIPTING
+#if AP_SCRIPTING_ENABLED
     bool set_target_location(const Location& target_loc) override;
     bool get_target_location(Location& target_loc) override;
-#endif // ENABLE_SCRIPTING
+#endif // AP_SCRIPTING_ENABLED
 
 };
 

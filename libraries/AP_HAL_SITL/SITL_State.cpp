@@ -59,10 +59,8 @@ void SITL_State::_set_param_default(const char *parm)
 /*
   setup for SITL handling
  */
-void SITL_State::_sitl_setup(const char *home_str)
+void SITL_State::_sitl_setup()
 {
-    _home_str = home_str;
-
 #if !defined(__CYGWIN__) && !defined(__CYGWIN64__)
     _parent_pid = getppid();
 #endif
@@ -76,7 +74,6 @@ void SITL_State::_sitl_setup(const char *home_str)
     if (_sitl != nullptr) {
         // setup some initial values
         _update_airspeed(0);
-        _update_rangefinder(0);
         if (enable_gimbal) {
             gimbal = new SITL::Gimbal(_sitl->state);
         }
@@ -167,16 +164,7 @@ void SITL_State::_fdm_input_step(void)
 
     if (_sitl != nullptr) {
         _update_airspeed(_sitl->state.airspeed);
-        _update_rangefinder(_sitl->state.range);
-
-        if (_sitl->adsb_plane_count >= 0 &&
-            adsb == nullptr) {
-            adsb = new SITL::ADSB(_sitl->state, sitl_model->get_home(), get_instance());
-        } else if (_sitl->adsb_plane_count == -1 &&
-                   adsb != nullptr) {
-            delete adsb;
-            adsb = nullptr;
-        }
+        _update_rangefinder();
     }
 
     // trigger all APM timers.
@@ -220,6 +208,14 @@ SITL::SerialDevice *SITL_State::create_serial_sim(const char *name, const char *
         }
         vicon = new SITL::Vicon();
         return vicon;
+    } else if (streq(name, "adsb")) {
+        // ADSB is a stand-out as it is the only serial device which
+        // will cope with begin() being called multiple times on a
+        // serial port
+        if (adsb == nullptr) {
+            adsb = new SITL::ADSB();
+        }
+        return adsb;
     } else if (streq(name, "benewake_tf02")) {
         if (benewake_tf02 != nullptr) {
             AP_HAL::panic("Only one benewake_tf02 at a time");
@@ -534,7 +530,7 @@ void SITL_State::_fdm_input_local(void)
         gimbal->update();
     }
     if (adsb != nullptr) {
-        adsb->update();
+        adsb->update(*sitl_model);
     }
     if (vicon != nullptr) {
         Quaternion attitude;

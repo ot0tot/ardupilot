@@ -19,7 +19,7 @@ void Rover::Log_Write_Attitude()
 
     // log steering rate controller
     logger.Write_PID(LOG_PIDS_MSG, g2.attitude_control.get_steering_rate_pid().get_pid_info());
-    logger.Write_PID(LOG_PIDA_MSG, g2.attitude_control.get_throttle_speed_pid().get_pid_info());
+    logger.Write_PID(LOG_PIDA_MSG, g2.attitude_control.get_throttle_speed_pid_info());
 
     // log pitch control for balance bots
     if (is_balancebot()) {
@@ -310,7 +310,7 @@ const LogStructure Rover::log_structure[] = {
 // @Field: XTrack: the vehicle's current distance from the current travel segment
 
     { LOG_NTUN_MSG, sizeof(log_Nav_Tuning),
-      "NTUN", "QfffHf", "TimeUS,WpDist,WpBrg,DesYaw,Yaw,XTrack", "smhhdm", "F000B0" },
+      "NTUN", "QfffHf", "TimeUS,WpDist,WpBrg,DesYaw,Yaw,XTrack", "smhhhm", "F000B0" },
     
 // @LoggerMessage: STER
 // @Description: Steering related messages

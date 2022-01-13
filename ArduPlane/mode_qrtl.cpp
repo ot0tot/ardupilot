@@ -49,6 +49,12 @@ void ModeQRTL::run()
         // start landing logic
         quadplane.verify_vtol_land();
     }
+
+    // when in approach allow stick mixing
+    if (quadplane.poscontrol.get_state() == QuadPlane::QPOS_AIRBRAKE ||
+        quadplane.poscontrol.get_state() == QuadPlane::QPOS_APPROACH) {
+        plane.stabilize_stick_mixing_fbw();
+    }
 }
 
 /*
@@ -69,7 +75,7 @@ bool ModeQRTL::update_target_altitude()
      */
     const float radius = MAX(fabsf(plane.aparm.loiter_radius), fabsf(plane.g.rtl_radius));
     const float rtl_alt_delta = MAX(0, plane.g.RTL_altitude_cm*0.01 - plane.quadplane.qrtl_alt);
-    const float sink_time = rtl_alt_delta / MAX(0.6*plane.SpdHgt_Controller->get_max_sinkrate(), 1);
+    const float sink_time = rtl_alt_delta / MAX(0.6*plane.TECS_controller.get_max_sinkrate(), 1);
     const float sink_dist = plane.aparm.airspeed_cruise_cm * 0.01 * sink_time;
     const float dist = plane.auto_state.wp_distance;
     const float rad_min = 2*radius;
@@ -81,6 +87,12 @@ bool ModeQRTL::update_target_altitude()
     loc.alt += alt*100;
     plane.set_target_altitude_location(loc);
     return true;
+}
+
+// only nudge during approach
+bool ModeQRTL::allows_throttle_nudging() const
+{
+    return plane.quadplane.poscontrol.get_state() == QuadPlane::QPOS_APPROACH;
 }
 
 #endif
