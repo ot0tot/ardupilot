@@ -30,7 +30,7 @@ https://www.racedayquads.com/collections/new-products/products/jhemcu-gsf405a-1-
 * Input voltage: 1S-2S Lipo
 * Continuous current: 5A
 * Firmware: BLHELI_S S_H_50_REV16_7.HEX
-* *Note* Bidirectional DShot requires [flashing](https://esc-configurator.com/) a compatible ESC firmware (eg [Bluejay](https://github.com/mathiasvr/bluejay))). 
+* *Note:* Bidirectional DShot requires [flashing](https://esc-configurator.com/) a compatible ESC firmware (eg [Bluejay](https://github.com/mathiasvr/bluejay))). 
 
 ## Pinout
 
@@ -52,7 +52,7 @@ receive pin for UARTn. The Tn pin is the transmit pin for UARTn.
 ## RC Input
  
 RC input is configured on SERIAL2 (USART2), which is available on the RX2, TX2, and SBUS pads. PPM receivers are *not* supported as this input does not have a timer resource available. 
-*Note* A different target is available should you want to use the built-in ExpressLRS 2.4GHz receiver on USART1. 
+*Note* A different [target](../JHEMCU-GSF405A) is available should you want to use the built-in ExpressLRS 2.4GHz receiver on USART1. 
   
 ## OSD Support
 
@@ -60,11 +60,11 @@ The GSF405A supports OSD using OSD_TYPE 1 (MAX7456 driver).
 
 ## Motor Output
 
-The built-in ESC is mapped to motor outputs 1-4. Bidirectional DShot is supported (requires flashing the ESC to a BLHeli_S version that supports bdshot, such as [Bluejay](esc-configurator.com)).
+The built-in ESC is mapped to motor outputs 1-4. Bidirectional DShot is supported (requires flashing the ESC to a BLHeli_S version that supports bdshot, such as Bluejay [esc-configurator.com](https://esc-configurator.com/)).
 
 ## Battery Monitoring
 
-The board has a built-in voltage and current sensors. 
+The board has built-in voltage and current sensors. 
 
 The correct battery setting parameters are:
 
