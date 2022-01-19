@@ -265,7 +265,7 @@ float GCS_MAVLINK_Plane::vfr_hud_climbrate() const
         return plane.g2.soaring_controller.get_vario_reading();
     }
 #endif
-    return AP::baro().get_climb_rate();
+    return GCS_MAVLINK::vfr_hud_climbrate();
 }
 
 void GCS_MAVLINK_Plane::send_wind() const
@@ -1403,18 +1403,6 @@ uint8_t GCS_MAVLINK_Plane::high_latency_wind_direction() const
     // return units are deg/2
     // need to convert -180->180 to 0->360/2
     return wrap_360(degrees(atan2f(-wind.y, -wind.x))) / 2;
-}
-
-int8_t GCS_MAVLINK_Plane::high_latency_air_temperature() const
-{
-    // return units are degC
-    AP_Airspeed *airspeed = AP_Airspeed::get_singleton();
-    float air_temperature;
-    if (airspeed != nullptr && airspeed->enabled() && airspeed->get_temperature(air_temperature)) {
-        return air_temperature;
-    }
-
-    return INT8_MIN;
 }
 #endif // HAL_HIGH_LATENCY2_ENABLED
 
